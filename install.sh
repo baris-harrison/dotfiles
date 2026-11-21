@@ -137,7 +137,7 @@ else
 fi
 
 step "tmux plugins (tpm)"
-TPM="$HOME/.tmux/plugins/tpm"
+TPM="$HOME/.config/tmux/plugins/tpm"
 if [[ -d "$TPM" ]]; then
   echo "  tpm already installed"
 else
