@@ -76,13 +76,17 @@ run mkdir -p "$HOME/.kube/configs"
 # --- 2b. Old layout clean-up ---------------------------------------------------
 # Symlinks left by an earlier dotfiles layout that would shadow the files above
 # (tmux reads ~/.tmux.conf before ~/.config/tmux/tmux.conf). Only symlinks that
-# point outside this repo are moved to the backup folder; real files are left alone.
+# point outside this repo, or at nothing, are moved to the backup folder; real
+# files are left alone.
 step "Old layout clean-up"
 K9S_OLD="$HOME/Library/Application Support/k9s"
 for old in "$HOME/.tmux.conf" "$HOME/.zprofile" "$HOME/bin/ghost" \
            "$HOME/bin/completions/_ghost" "$K9S_OLD/aliases.yaml" "$K9S_OLD/skins"; do
   [[ -L "$old" ]] || continue
-  case "$(readlink "$old")" in "$DOTFILES"/*) continue ;; esac
+  # Keep links into this repo, unless they dangle (repo moved or file removed)
+  if [[ -e "$old" ]]; then
+    case "$(readlink "$old")" in "$DOTFILES"/*) continue ;; esac
+  fi
   rel="${old#"$HOME/"}"
   if ((DRY)); then
     echo "  would move old link $old to $BACKUP/$rel"
