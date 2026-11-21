@@ -1,7 +1,9 @@
 # Ghostty config. List options: `ghostty +show-config --default --docs`
 # Reload: Cmd+Shift+,
 font-family = JetBrainsMono Nerd Font
-font-size = 14
+font-size = 18
+window-width = 160
+window-height = 80
 theme = light:Catppuccin Latte,dark:Catppuccin Mocha
 
 macos-option-as-alt = true
