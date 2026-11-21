@@ -22,7 +22,6 @@
 	followTags = true
 [fetch]
 	prune = true
-	pruneTags = true
 [rebase]
 	autoStash = true
 	autoSquash = true
@@ -42,7 +41,7 @@
 [alias]
 	fixup = commit --fixup
 	undo = reset --soft HEAD~1
-	wip = !git add -A && git commit -m wip --no-verify
+	wip = !git add -A && git commit -m wip
 	recent = branch --sort=-committerdate --format='%(committerdate:relative)%09%(refname:short)'
 
 # Machine-local: identity, signing, includeIf for client repos
