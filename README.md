@@ -1,38 +1,77 @@
 # dotfiles
 
 My Mac setup for platform/DevOps work. It covers:
-- **Shell and terminal:** zsh + starship, Ghostty (opens straight into tmux), tmux, vim
-- **git:** SSH signing through 1Password
+- **Shell and terminal:** zsh + starship, Ghostty (opens straight into tmux), tmux with a cheat sheet pop-up (`Ctrl+Space H`), vim
+- **git:** delta diffs, optional SSH commit signing through 1Password, GitHub auth through `gh`
 - **Cloud and Kubernetes:** AWS SSO via granted, kubie and k9s
 - **Toolchains:** mise for every pinned tool (terraform, terragrunt, kubectl, helm, python, node)
 - **Two helper commands:** `ghost` (parallel worktree sessions for agentic work) and `lab` (local Backstage + Kubernetes + Argo CD)
 
 One script; no dotfile manager.
 
-## New device
+## Install
 
-1. **1Password**: install it, sign in, then go to *Settings → Developer* and enable **Use the SSH agent**.
-2. **Clone and run**:
+Works on a new Mac and on one that's already set up (including one with an
+older dotfiles layout). Clone over HTTPS: the repo is public, so no GitHub
+login is needed to install or pull.
+
+1. **1Password** (optional, for SSH commit signing): install it, sign in, then go to
+   *Settings → Developer* and enable **Use the SSH agent**. On a managed Mac it may
+   already be installed by MDM; the Brewfile skips it then.
+2. **Clone and preview** (changes nothing):
    ```sh
-   xcode-select --install          # provides git; wait for it to finish
-   git clone https://github.com/<github-user>/dotfiles ~/dotfiles
-   ~/dotfiles/install.sh -n        # optional: preview, changes nothing
-   ~/dotfiles/install.sh
+   xcode-select --install          # provides git; skip if git already works
+   git clone https://github.com/<github-user>/dotfiles ~/Projects/dotfiles
+   ~/Projects/dotfiles/install.sh -n
+   ```
+   Any path works, but don't move the repo after installing: everything is
+   symlinked to it. In the preview, check:
+   - **Git identity** says `keeping existing identity` if the Mac already has one
+     in `~/.gitconfig`. Otherwise it will ask for name, email and an optional signing key.
+   - **would back up** / **would move old link** only lists files you expect to be replaced.
+   - The `Brewfile` installs what you want on this Mac (e.g. comment out the lab
+     tools — colima, docker, kind, argocd — if you won't use `lab`).
+3. **Install**:
+   ```sh
+   brew uninstall tenv               # only if installed: mise manages terraform now
+   ~/Projects/dotfiles/install.sh
    ```
    The script:
    - installs Homebrew and everything in the `Brewfile`
    - symlinks everything in `home/` into your home folder, backing up existing files to `~/.dotfiles-backup/`
+   - moves aside symlinks left by an older layout (see below)
    - asks for your git name, email and signing key, unless your global git config (e.g. `~/.gitconfig`) already has an email
-   - installs the mise toolchains
-   - applies the macOS defaults
-   - turns on the gitleaks hook
+   - installs the mise toolchains and the tmux plugins (tpm)
+   - applies the macOS defaults (`macos-defaults.sh`)
+   - turns on the gitleaks hook for this repo
 
    It's safe to re-run.
-3. **AWS profiles** (generated from your SSO access, so nothing about your employer goes in this repo):
+4. **Reload**: open a new Ghostty window, or `exec zsh`. If tmux was already
+   running, run `tmux source-file ~/.config/tmux/tmux.conf` in it (or restart the
+   tmux server when nothing important is running). `Ctrl+Space H` should then
+   show the cheat sheet.
+5. **GitHub auth for git**, so git never asks for a password:
+   ```sh
+   gh auth login                                   # github.com
+   gh auth setup-git
+   # GitHub Enterprise: add --hostname <GHE host> to both commands
+   ```
+   Check: `GIT_TERMINAL_PROMPT=0 git ls-remote <repo URL>` works without a prompt.
+6. **AWS profiles** (generated from your SSO access, so nothing about your employer goes in this repo):
    ```sh
    granted sso generate --sso-region <region> https://<org>.awsapps.com/start >> ~/.aws/config
+   whereami                          # check kube context and AWS identity
    ```
-4. **For Backstage**: `corepack enable` (provides yarn).
+7. **For Backstage**: `corepack enable` (provides yarn).
+
+**Updating later:** `git -C ~/Projects/dotfiles pull`, then re-run `install.sh`
+if files were added under `home/` or to the `Brewfile`.
+
+**Not managed here:**
+- `~/.claude` (Claude Code config). If it's symlinked into an older dotfiles
+  checkout, keep that checkout where it is.
+- Per-machine Homebrew extras. A `Brewfile.local` from an older layout is no
+  longer loaded; install it yourself with `brew bundle --file <path>/Brewfile.local`.
 
 ## How it's laid out
 
@@ -43,7 +82,7 @@ Because the files are symlinks, editing `~/.zshrc` edits the repo. Commit and pu
 ```
 install.sh          setup (-n = dry run)
 Brewfile            CLI tools and apps
-macos-defaults.sh   keyboard, Finder, Dock settings
+macos-defaults.sh   keyboard, Finder, Dock and screenshot settings
 home/               symlinked into ~
   .zshenv .zshrc  .config/zsh/   shell
   .config/git/  .config/ghostty/  .config/starship.toml  .config/mise/
@@ -64,14 +103,14 @@ when they point outside this repo, and copies k9s's own `config.yaml`/`clusters`
 to `~/.config/k9s` once. Everything moved goes to `~/.dotfiles-backup/`.
 
 If another version manager (tenv, tfenv) is installed, remove it so its
-`terraform` doesn't compete with mise's: `brew uninstall tenv`.
+`terraform` doesn't compete with mise's: `brew uninstall tenv` (or `tfenv`).
 
 ## ghost: parallel tasks and agents
 
 Each task gets its own git worktree (a separate folder on its own branch) and its own tmux session, so agents never edit the same files.
 
 ```sh
-cd ~/src/myrepo
+cd ~/Projects/myrepo
 ghost fix-login                          # worktree + session, then attach
 GHOST_AGENT_CMD=claude ghost add-tests   # same, and start an agent in the left pane
 ghost ls                                 # list sessions and worktrees
