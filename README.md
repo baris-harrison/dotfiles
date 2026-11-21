@@ -22,7 +22,7 @@ One script; no dotfile manager.
    The script:
    - installs Homebrew and everything in the `Brewfile`
    - symlinks everything in `home/` into your home folder, backing up existing files to `~/.dotfiles-backup/`
-   - asks for your git name, email and signing key
+   - asks for your git name, email and signing key, unless your global git config (e.g. `~/.gitconfig`) already has an email
    - installs the mise toolchains
    - applies the macOS defaults
    - turns on the gitleaks hook
@@ -47,7 +47,7 @@ macos-defaults.sh   keyboard, Finder, Dock settings
 home/               symlinked into ~
   .zshenv .zshrc  .config/zsh/   shell
   .config/git/  .config/ghostty/  .config/starship.toml  .config/mise/
-  .config/tmux/tmux.conf        tmux (prefix Ctrl-b)
+  .config/tmux/tmux.conf        tmux (prefix Ctrl+Space)
   .config/k9s/                  aliases (incl. :app for Argo CD) + Catppuccin skins
   .config/cheatsheet.md         tmux, Ghostty, shell and k9s keys
   .vimrc                        2-space indent for YAML/JSON/HCL/shell/Markdown, 4 for Python
@@ -81,7 +81,7 @@ ghost rm fix-login                       # remove session + worktree (keeps the 
 - Worktrees go next to the repo, in `../myrepo.worktrees/<branch>`.
 - Each session has two panes: an agent or editor on the left and a shell on the right.
 - Run `assume <profile>` before `ghost`, and the panes get those AWS (and `KUBECONFIG`) credentials.
-- Switch between sessions with `Ctrl-b s`.
+- Switch between sessions with `Ctrl+Space s`.
 
 ## lab: local Backstage + Kubernetes + Argo CD
 
@@ -104,7 +104,7 @@ Every pane is pinned to the `kind-lab` context, so it can never touch a real clu
 A gitleaks pre-commit hook blocks commits that contain secrets, AWS account IDs or real SSO URLs. For a false positive, add `gitleaks:allow` to the line.
 
 Never committed:
-- `~/.config/git/config.local` for git identity and signing (written by the script)
+- `~/.config/git/config.local` for git identity and signing (written by the script when no identity exists yet; an existing `~/.gitconfig` is left alone)
 - `~/.zshrc.local` for shell settings
 - `~/.ssh/config.d/*` for SSH hosts
 - `~/.kube/` kubeconfigs and `~/.aws/`
