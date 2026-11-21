@@ -21,12 +21,11 @@ brew "yq"
 brew "coreutils"
 brew "gnu-sed"
 brew "watch"
-brew "tldr"
+brew "tlrc"                 # official tldr client (`tldr <cmd>`)
 
 # --- Cloud / AWS ------------------------------------------------------------
 brew "awscli"
 brew "granted"              # `assume` for AWS SSO, per-shell credentials
-brew "session-manager-plugin"  # SSM: ssh-less access to EC2
 
 # --- Kubernetes ---------------------------------------------------------------
 brew "kubie"                # per-shell kube context/namespace isolation
@@ -52,3 +51,4 @@ cask "font-jetbrains-mono-nerd-font"
 # 1Password is often pushed by MDM on work laptops; don't fight it.
 cask "1password" unless File.directory?("/Applications/1Password.app")
 cask "1password-cli"
+cask "session-manager-plugin"  # SSM: ssh-less access to EC2
