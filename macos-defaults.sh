@@ -23,7 +23,6 @@ mkdir -p "$HOME/Pictures/Screenshots"
 defaults write com.apple.screencapture location -string "$HOME/Pictures/Screenshots"
 
 # Dock
-defaults write com.apple.dock autohide -bool true
 defaults write com.apple.dock show-recents -bool false
 
 killall Finder Dock 2>/dev/null || true
