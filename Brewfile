@@ -15,6 +15,7 @@ brew "zoxide"               # smarter cd
 brew "ripgrep"
 brew "fd"
 brew "bat"
+brew "glow"                 # renders the tmux cheat sheet pop-up (prefix H)
 brew "eza"
 brew "jq"
 brew "yq"
@@ -44,6 +45,7 @@ brew "gh"
 brew "gitleaks"           # secret scanning (also guards this repo)
 brew "shellcheck"
 brew "shfmt"
+brew "uv"                   # Python envs and CLIs (`uv tool install`)
 
 # --- Apps -------------------------------------------------------------------
 cask "ghostty"

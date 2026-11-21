@@ -1,8 +1,8 @@
 # Terminal cheat sheet
 
-`bat ~/.config/cheatsheet.md` to read it.
+`Ctrl+Space H` in tmux opens it as a pop-up, or `bat ~/.config/cheatsheet.md`.
 
-## tmux (prefix: Ctrl-b, release, then the key)
+## tmux (prefix: Ctrl+Space, release, then the key)
 
 | Keys | What it does |
 | --- | --- |
@@ -17,6 +17,7 @@
 | `x` / `&` | close pane / window (asks first) |
 | `d` | detach; everything keeps running (`ta` to return) |
 | `r` | reload `~/.config/tmux/tmux.conf` |
+| `H` | this cheat sheet as a pop-up (glow) |
 | `?` | list every key |
 
 Mouse is on: click to focus, drag a border to resize, wheel to scroll.
