@@ -106,8 +106,10 @@ done
 # --- 3. Git identity (local only, never committed) -----------------------------
 step "Git identity"
 LOCAL_GIT="$HOME/.config/git/config.local"
-if git config --file "$LOCAL_GIT" user.email >/dev/null 2>&1; then
-  echo "  already set in $LOCAL_GIT"
+# Keep an identity that already exists (e.g. a work email in ~/.gitconfig): only
+# ask when no global config has one. --includes so config.local counts too.
+if existing=$(git config --global --includes --show-origin --get user.email); then
+  echo "  keeping existing identity: ${existing#file:}"
 elif ((DRY)); then
   echo "  would ask for name, email and signing key, and write $LOCAL_GIT"
 else
