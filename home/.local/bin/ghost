@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# ghost — one git worktree + one tmux session per task, so several tasks
+# (or AI agents) can work on the same repo in parallel without stepping on
+# each other's files.
+#
+#   ghost <branch>       create worktree + session if needed, then attach
+#   ghost ls             list sessions and worktrees
+#   ghost rm <branch>    kill the session and remove the worktree (keeps the branch)
+#
+# Run inside the repo. Worktrees live next to it: ../<repo>.worktrees/<branch>
+# Each session has two panes in the worktree: left for the agent/editor,
+# right for a shell. Set GHOST_AGENT_CMD to start an agent in the left pane:
+#   GHOST_AGENT_CMD=claude ghost fix-login
+#
+# Panes copy AWS/Kubernetes credentials from the shell you run ghost in
+# (e.g. after `assume dev`), because tmux would otherwise give them the
+# environment from when the tmux server first started.
+set -euo pipefail
+
+GHOST_ENV_VARS="${GHOST_ENV_VARS:-AWS_PROFILE AWS_REGION AWS_DEFAULT_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_CREDENTIAL_EXPIRATION KUBECONFIG}"
+
+die() { echo "ghost: $*" >&2; exit 1; }
+usage() { sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+
+command -v tmux >/dev/null || die "tmux not installed"
+git rev-parse --git-dir >/dev/null 2>&1 || die "not inside a git repo"
+
+# The main checkout, even when run from inside a worktree
+main_root="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
+repo="$(basename "$main_root")"
+wt_base="${GHOST_WORKTREE_DIR:-$(dirname "$main_root")/$repo.worktrees}"
+
+session_name() { printf '%s_%s' "$repo" "${1//\//-}" | tr '.:' '__'; }
+worktree_path() { printf '%s/%s' "$wt_base" "${1//\//-}"; }
+
+attach() {
+  if [[ -n "${TMUX:-}" ]]; then
+    tmux switch-client -t "=$1"
+  else
+    tmux attach-session -t "=$1"
+  fi
+}
+
+cmd_ls() {
+  echo "Sessions:"
+  tmux list-sessions -F '  #S  (#{session_windows} windows#{?session_attached, attached,})' 2>/dev/null \
+    | grep -F "  ${repo}_" || echo "  none for $repo"
+  echo "Worktrees:"
+  git -C "$main_root" worktree list | sed 's/^/  /'
+}
+
+cmd_rm() {
+  local branch=$1 session wt
+  session="$(session_name "$branch")"
+  wt="$(worktree_path "$branch")"
+  tmux kill-session -t "=$session" 2>/dev/null && echo "killed session $session" || true
+  if [[ -d "$wt" ]]; then
+    git -C "$main_root" worktree remove "$wt" \
+      || die "worktree has uncommitted changes; commit/stash, or: git worktree remove --force $wt"
+    echo "removed worktree $wt (branch $branch kept)"
+  fi
+}
+
+cmd_open() {
+  local branch=$1 session wt
+  session="$(session_name "$branch")"
+  wt="$(worktree_path "$branch")"
+
+  if [[ ! -d "$wt" ]]; then
+    mkdir -p "$wt_base"
+    if git -C "$main_root" show-ref --verify --quiet "refs/heads/$branch"; then
+      git -C "$main_root" worktree add "$wt" "$branch"
+    elif git -C "$main_root" show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+      git -C "$main_root" worktree add --track -b "$branch" "$wt" "origin/$branch"
+    else
+      git -C "$main_root" worktree add -b "$branch" "$wt"
+    fi
+  fi
+
+  if ! tmux has-session -t "=$session" 2>/dev/null; then
+    local env_args=() v
+    for v in $GHOST_ENV_VARS; do
+      [[ -n "${!v:-}" ]] && env_args+=(-e "$v=${!v}")
+    done
+    tmux new-session -d -s "$session" -n "$branch" -c "$wt" ${env_args[@]+"${env_args[@]}"}
+    tmux split-window -h -t "=$session:" -c "$wt" ${env_args[@]+"${env_args[@]}"}
+    tmux select-pane -t "=$session:" -L
+    if [[ -n "${GHOST_AGENT_CMD:-}" ]]; then
+      tmux send-keys -t "=$session:" "$GHOST_AGENT_CMD" Enter
+    fi
+  fi
+
+  attach "$session"
+}
+
+case "${1:-}" in
+  ""|-h|--help) usage ;;
+  ls)  cmd_ls ;;
+  rm)  [[ -n "${2:-}" ]] || usage; cmd_rm "$2" ;;
+  *)   cmd_open "$1" ;;
+esac

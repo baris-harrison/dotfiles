@@ -1,0 +1,27 @@
+# Global git ignore (core.excludesFile = ~/.config/git/ignore)
+
+# macOS / editors
+.DS_Store
+.idea/
+*.swp
+*.swo
+*~
+Session.vim
+
+# Local env and secrets
+.env
+.env.local
+.envrc.local
+.direnv/
+.mise.local.toml
+
+# Terraform plans
+tfplan
+*.tfplan
+
+# Private Claude Code files: never commit by accident
+**/.claude/settings.local.json
+**/.claude/worktrees/
+**/.claude/.cc-writes/
+CLAUDE.local.md
+bch-claude-plan

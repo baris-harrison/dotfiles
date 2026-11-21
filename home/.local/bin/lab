@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# lab — the local platform lab (Backstage + kind cluster + Argo CD) in one
+# tmux session. Run it again any time to reattach; everything keeps running
+# when Ghostty closes.
+#
+#   lab          start (or reattach to) the lab
+#   lab stop     kill the session (the cluster keeps running)
+#   lab down     kill the session and delete the kind cluster
+#
+# Panes:  Backstage dev server | Argo CD port-forward (auto-reconnects)
+#         k9s                   | Argo CD logs (stern)
+#
+# Settings (env vars):
+#   LAB_BACKSTAGE_DIR   default ~/src/backstage
+#   LAB_CLUSTER         default lab   (kubectl context: kind-lab)
+#   LAB_ARGOCD_PORT     default 8080  (UI at https://localhost:8080)
+#   LAB_COLIMA_ARGS     default "--cpu 4 --memory 8"
+#
+# Every pane is pinned to the lab's kube context, so a context switch
+# elsewhere can never point these commands at a real cluster.
+set -euo pipefail
+
+SESSION=lab
+CLUSTER="${LAB_CLUSTER:-lab}"
+CTX="kind-$CLUSTER"
+BACKSTAGE_DIR="${LAB_BACKSTAGE_DIR:-$HOME/src/backstage}"
+ARGOCD_PORT="${LAB_ARGOCD_PORT:-8080}"
+read -r -a COLIMA_ARGS <<< "${LAB_COLIMA_ARGS:---cpu 4 --memory 8}"
+
+die() { echo "lab: $*" >&2; exit 1; }
+for c in tmux kind kubectl; do command -v "$c" >/dev/null || die "$c not installed"; done
+
+attach() {
+  if [[ -n "${TMUX:-}" ]]; then tmux switch-client -t "=$SESSION"; else tmux attach-session -t "=$SESSION"; fi
+}
+
+case "${1:-}" in
+  stop) tmux kill-session -t "=$SESSION" 2>/dev/null && echo "lab session stopped"; exit 0 ;;
+  down) tmux kill-session -t "=$SESSION" 2>/dev/null || true
+        kind delete cluster --name "$CLUSTER"; exit 0 ;;
+  ""|start) ;;
+  *) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+esac
+
+if tmux has-session -t "=$SESSION" 2>/dev/null; then
+  attach; exit 0
+fi
+
+# Container runtime + cluster
+if command -v colima >/dev/null && ! colima status >/dev/null 2>&1; then
+  echo "lab: starting colima ${COLIMA_ARGS[*]}"
+  colima start "${COLIMA_ARGS[@]}"
+fi
+if ! kind get clusters 2>/dev/null | grep -qx "$CLUSTER"; then
+  echo "lab: creating kind cluster '$CLUSTER'"
+  kind create cluster --name "$CLUSTER"
+fi
+
+backstage_cmd="cd '$BACKSTAGE_DIR' && yarn start"
+[[ -d "$BACKSTAGE_DIR" ]] || backstage_cmd="echo 'Backstage not found at $BACKSTAGE_DIR (set LAB_BACKSTAGE_DIR, or: npx @backstage/create-app@latest)'"
+
+portfwd_cmd="while true; do kubectl --context $CTX -n argocd port-forward svc/argocd-server $ARGOCD_PORT:443 \
+|| echo 'Argo CD not reachable yet (installed in namespace argocd?) - retrying in 5s'; sleep 5; done"
+
+tmux new-session -d -s "$SESSION" -n lab -c "$HOME"
+for _ in 1 2 3; do tmux split-window -t "=$SESSION:" -c "$HOME"; tmux select-layout -t "=$SESSION:" tiled >/dev/null; done
+
+# 'tiled' places panes in index order: top-left, top-right, bottom-left, bottom-right
+panes=()
+while IFS= read -r p; do panes+=("$p"); done < <(tmux list-panes -t "=$SESSION:" -F '#{pane_id}')
+tmux send-keys -t "${panes[0]}" "$backstage_cmd" Enter
+tmux send-keys -t "${panes[1]}" "$portfwd_cmd" Enter
+tmux send-keys -t "${panes[2]}" "k9s --context $CTX" Enter
+tmux send-keys -t "${panes[3]}" "stern --context $CTX -n argocd ." Enter
+tmux select-pane -t "${panes[0]}"
+
+attach

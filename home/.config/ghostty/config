@@ -1,0 +1,25 @@
+# Ghostty config. List options: `ghostty +show-config --default --docs`
+# Reload: Cmd+Shift+,
+font-family = JetBrainsMono Nerd Font
+font-size = 14
+theme = light:Catppuccin Latte,dark:Catppuccin Mocha
+
+macos-option-as-alt = true
+macos-titlebar-style = tabs
+copy-on-select = clipboard
+mouse-hide-while-typing = true
+
+# Every window opens into the tmux session `main` (created if missing), so
+# closing Ghostty never kills work. exec: tmux replaces the login shell.
+command = /bin/zsh -lc "exec /opt/homebrew/bin/tmux new-session -A -s main"
+# tmux restores the work, so Ghostty doesn't need to.
+window-save-state = never
+# tmux keeps the history (history-limit), so keep Ghostty's default 10 MB cap.
+scrollback-limit = 10000000
+
+# Fixes "unknown terminal type xterm-ghostty" on remote servers:
+# ssh-env falls back to xterm-256color, ssh-terminfo installs the terminfo.
+shell-integration-features = ssh-env,ssh-terminfo,sudo
+
+# Drop-down terminal from anywhere (needs Accessibility permission)
+keybind = global:cmd+grave_accent=toggle_quick_terminal

@@ -1,0 +1,19 @@
+# gitleaks: default secret rules + rules for employer-identifying data that
+# isn't a "secret" but shouldn't be in this public repo.
+title = "dotfiles"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "aws-account-id"
+description = "12-digit AWS account ID"
+regex = '''(?:^|[^0-9A-Za-z])(\d{12})(?:[^0-9A-Za-z]|$)'''
+secretGroup = 1
+keywords = ["account", "arn:aws"]
+
+[[rules]]
+id = "aws-sso-start-url"
+description = "Real AWS SSO start URL"
+regex = '''https://[a-z0-9-]+\.awsapps\.com/start'''
+keywords = ["awsapps.com"]

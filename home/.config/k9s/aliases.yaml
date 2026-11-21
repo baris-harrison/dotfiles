@@ -1,0 +1,14 @@
+# k9s shortcuts: type `:<alias>` in k9s. Only this file is tracked;
+# k9s writes its own state (config.yaml, clusters/) next to it, untracked.
+aliases:
+  dp: apps/v1/deployments
+  sts: apps/v1/statefulsets
+  ds: apps/v1/daemonsets
+  sec: v1/secrets
+  cm: v1/configmaps
+  ing: networking.k8s.io/v1/ingresses
+  ev: v1/events
+  # Argo CD
+  app: argoproj.io/v1alpha1/applications
+  appset: argoproj.io/v1alpha1/applicationsets
+  proj: argoproj.io/v1alpha1/appprojects
