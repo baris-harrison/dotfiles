@@ -136,6 +136,16 @@ else
   echo "  mise not installed yet (installed by Brewfile)"
 fi
 
+step "tmux plugins (tpm)"
+TPM="$HOME/.tmux/plugins/tpm"
+if [[ -d "$TPM" ]]; then
+  echo "  tpm already installed"
+else
+  run git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM"
+fi
+# Installs the plugins listed in tmux.conf (same as prefix + I inside tmux)
+run "$TPM/bin/install_plugins"
+
 step "macOS defaults"
 run "$DOTFILES/macos-defaults.sh"
 
